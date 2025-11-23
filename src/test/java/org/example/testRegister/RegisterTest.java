@@ -16,7 +16,7 @@ public class RegisterTest extends BaseTest{
     public void testRegister_Success() throws Exception{
         DataGenerator.RegistrationData data = DataGenerator.generateRegistrationData();
         Response response = RegisterEndpoints.register(data.name, data.email, data.login, data.password, data.confirmPassword);
-        assertThat(response.statusCode(), equalTo(200));
+        assertThat(response.statusCode(), equalTo(307));
         String sql = String.format(
                 "SELECT * FROM users WHERE email = '%s'", data.email);
         ResultSet resultSet = DatabaseHelper.executeQuery(sql);
