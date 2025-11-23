@@ -1,6 +1,5 @@
-name: Run API Tests  # Название workflow в GitHub
+name: Run API Tests
 
-# ↓ КОГДА ЗАПУСКАТЬ: при пуше в main или при pull request
 on:
   push:
     branches: [ main, master ]
@@ -9,21 +8,18 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest  # ↑ НА ЧЁМ ЗАПУСКАТЬ: на виртуальной машине Ubuntu
+    runs-on: ubuntu-latest
 
     steps:
-      # ↓ ШАГ 1: Получить код из репозитория
-      - name: Upload test reports
-        uses: actions/upload-artifact@v4
+      - name: Checkout code
+        uses: actions/checkout@v4  # ← ИЗМЕНИЛ НА v4!
 
-      # ↓ ШАГ 2: Установить Java 17
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      # ↓ ШАГ 3: Создать config.properties из секретов
       - name: Create config file from secrets
         run: |
           mkdir -p src/main/resources
@@ -34,13 +30,11 @@ jobs:
           api.base_uri=${{ secrets.API_BASE_URI }}
           EOF
 
-      # ↓ ШАГ 4: Запустить тесты
       - name: Run tests with Maven
         run: mvn test
 
-      # ↓ ШАГ 5: Сохранить отчеты тестов (даже если тесты упали)
       - name: Upload test reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-reports
