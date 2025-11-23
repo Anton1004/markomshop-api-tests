@@ -1,0 +1,47 @@
+name: Run API Tests  # Название workflow в GitHub
+
+# ↓ КОГДА ЗАПУСКАТЬ: при пуше в main или при pull request
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest  # ↑ НА ЧЁМ ЗАПУСКАТЬ: на виртуальной машине Ubuntu
+
+    steps:
+      # ↓ ШАГ 1: Получить код из репозитория
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # ↓ ШАГ 2: Установить Java 17
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # ↓ ШАГ 3: Создать config.properties из секретов
+      - name: Create config file from secrets
+        run: |
+          mkdir -p src/main/resources
+          cat > src/main/resources/config.properties << EOF
+          db.url=${{ secrets.DB_URL }}
+          db.user=${{ secrets.DB_USER }}
+          db.password=${{ secrets.DB_PASSWORD }}
+          api.base_uri=${{ secrets.API_BASE_URI }}
+          EOF
+
+      # ↓ ШАГ 4: Запустить тесты
+      - name: Run tests with Maven
+        run: mvn test
+
+      # ↓ ШАГ 5: Сохранить отчеты тестов (даже если тесты упали)
+      - name: Upload test reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-reports
+          path: target/surefire-reports/
