@@ -2,69 +2,48 @@ package org.example.base;
 
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import org.example.config.Apiconfig;
 import org.testng.annotations.BeforeSuite;
 
 import static io.restassured.RestAssured.given;
 
 public class BaseTest {
 
-    /**
-     * ЭТОТ МЕТОД ВАЖНЕЕ ВСЕГО - ОН РЕШАЕТ ПРОБЛЕМУ 307 ОШИБКИ
-     *
-     * ПРОБЛЕМА: Приложение на Render запускается 2-5 минут. Если тесты запустить сразу,
-     * они получат 307 Temporary Redirect потому что сервис еще "просыпается"
-     *
-     * РЕШЕНИЕ: Перед запуском тестов ждем пока сервис полностью запустится и вернет 200 OK
-     *
-     * @BeforeSuite - выполняется ОДИН РАЗ перед всеми тестами в suite
-     */
     @BeforeSuite
     public void waitForService() {
+        // ⭐⭐⭐ КРИТИЧЕСКИ ВАЖНО: сначала загружаем конфигурацию ⭐⭐⭐
+        System.out.println("🔧 Загружаем конфигурацию перед ожиданием сервиса...");
+        Apiconfig.setup();
+
         System.out.println("⏳ Ожидаем полный запуск сервиса на Render...");
-        System.out.println("📡 Базовый URL: " + RestAssured.baseURI);
+        System.out.println("🎯 Базовый URL: " + RestAssured.baseURI);
 
-        // Настройки ожидания
-        int maxAttempts = 36;    // Максимум 36 попыток
-        int waitSeconds = 5;     // Ждем 5 секунд между попытками
-        int totalWaitTime = (maxAttempts * waitSeconds) / 60; // Общее время ожидания в минутах
+        int maxAttempts = 36;
+        int waitSeconds = 5;
 
-        System.out.println("⏰ Максимальное время ожидания: " + totalWaitTime + " минут");
-
-        // Пытаемся подключиться к сервису
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
-                System.out.println("🔍 Попытка подключения " + attempt + "/" + maxAttempts + "...");
+                System.out.println("🔍 Попытка " + attempt + "/" + maxAttempts + " к " + RestAssured.baseURI);
 
-                // ⭐⭐⭐ ИСПРАВЛЕННЫЙ КОД - убираем неподдерживаемый timeout ⭐⭐⭐
                 Response response = given()
-                        .relaxedHTTPSValidation()  // Игнорируем SSL ошибки (важно для Render)
+                        .relaxedHTTPSValidation()
                         .when()
-                        .get("/"); // Просто обращаемся к корневому URL приложения
+                        .get("/");
 
                 int statusCode = response.getStatusCode();
-                System.out.println("📊 Получен статус: " + statusCode);
+                System.out.println("📊 Статус: " + statusCode);
 
-                // ⭐⭐⭐ ГЛАВНАЯ ПРОВЕРКА ⭐⭐⭐
-                if (statusCode == 200) {
-                    System.out.println("✅ УСПЕХ! Сервис полностью запущен и готов к тестированию!");
-                    System.out.println("🚀 Начинаем выполнение тестов...");
-                    return; // Выходим из метода - сервис готов!
-                }
-
-                // Дополнительная информация о других статусах
-                if (statusCode == 307) {
-                    String location = response.getHeader("Location");
-                    System.out.println("🔄 Сервис перенаправляет на: " + location);
+                // Ожидаем 200 или 302 (редирект)
+                if (statusCode == 200 || statusCode == 302) {
+                    System.out.println("✅ Сервис готов! Статус: " + statusCode);
+                    return;
                 }
 
             } catch (Exception e) {
-                // Ловим ВСЕ исключения - это нормально когда сервис запускается
                 System.out.println("❌ Ошибка подключения: " + e.getMessage());
             }
 
-            // Ждем перед следующей попыткой
             try {
-                System.out.println("💤 Ждем " + waitSeconds + " секунд...");
                 Thread.sleep(waitSeconds * 1000);
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
@@ -72,8 +51,6 @@ public class BaseTest {
             }
         }
 
-        // Если дошли сюда - сервис так и не запустился
-        System.out.println("⚠️  ВНИМАНИЕ: Сервис не запустился за " + totalWaitTime + " минут!");
-        System.out.println("🔧 Тесты будут запущены, но могут падать из-за 307 ошибок");
+        System.out.println("⚠️  Сервис не запустился за отведенное время");
     }
 }

@@ -24,11 +24,18 @@ jobs:
         run: |
           mkdir -p src/main/resources
           cat > src/main/resources/config.properties << EOF
+          # Database Configuration
           db.url=${{ secrets.DB_URL }}
           db.user=${{ secrets.DB_USER }}
           db.password=${{ secrets.DB_PASSWORD }}
-          api.base_uri=${{ secrets.API_BASE_URI }}
+          
+          # API Configuration - ИСПРАВЬТЕ НА БОЛЬШИЕ БУКВЫ!
+          API_BASE_URI=${{ secrets.API_BASE_URI }}
           EOF
+          
+          # ПРОВЕРКА
+          echo "🔧 СОЗДАННЫЙ CONFIG.PROPERTIES:"
+          cat src/main/resources/config.properties
 
       - name: Run tests with Maven
         run: mvn test
